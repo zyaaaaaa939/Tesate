@@ -1,98 +1,122 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import CardName from '@/components/CardName';
+import FormInput from '@/components/FormInput';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+export default function Index() {
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-export default function HomeScreen() {
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('https://dummyjson.com/products');
+      const data = await response.json();
+      setProducts(data.products);
+    } catch (err: any) {
+      setError("Gagal ambil data, cek koneksi lu!");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const renderHeader = () => (
+    <View>
+      <View style={styles.header}>
+        <Text style={styles.location}>Bambu Apus, Jakarta Timur</Text>
+        <Text style={styles.welcome}>Sore, Mang Saswi</Text>
+        <FormInput placeholder="Cari Kesukaan kamu!" />
+      </View>
+
+      <FlatList
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.categoryRow}
+        data={['Rekomendasi', 'Makanan', 'Minuman', 'Cemilan']}
+        keyExtractor={(item) => item}
+        renderItem={({ item }) => (
+          <View style={[styles.chip, item === 'Rekomendasi' && styles.activeChip]}>
+            <Text style={item === 'Rekomendasi' ? styles.activeText : {}}>{item}</Text>
+          </View>
+        )}
+      />
+    </View>
+  );
+
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color="#5DBB63" />
+        <Text style={{ marginTop: 10 }}>Sabar ya, lagi masak...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.center}>
+        <Text style={styles.errorText}>{error}</Text>
+        <TouchableOpacity style={styles.retryBtn} onPress={fetchData}>
+          <Text style={{ color: '#fff' }}>Coba Lagi</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
-
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+    <SafeAreaView style={styles.container}>
+      <FlatList
+        data={products}
+        keyExtractor={(item: any) => item.id.toString()}
+        ListHeaderComponent={renderHeader}
+        numColumns={2}
+        columnWrapperStyle={styles.columnWrapper}
+        contentContainerStyle={styles.listPadding}
+        showsVerticalScrollIndicator={false}
+        renderItem={({ item }: any) => (
+          <CardName
+            id={item.id} 
+            title={item.title}
+            description={item.description}
+            price={item.price * 15000}
+            image={item.thumbnail}
+            onPressCart={() => console.log('Tambah ke keranjang:', item.title)}
+          />
+        )}
+      />
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  container: { flex: 1, backgroundColor: '#FFF' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  header: { paddingHorizontal: 20, paddingTop: 10 },
+  location: { textAlign: 'center', fontSize: 13, color: '#666', marginBottom: 15 },
+  welcome: { fontSize: 26, fontWeight: 'bold', marginBottom: 20 },
+  categoryRow: { paddingLeft: 20, marginVertical: 20 },
+  chip: {
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: '#F5F5F5',
+    marginRight: 10,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  activeChip: { backgroundColor: '#5DBB63' },
+  activeText: { color: '#FFF', fontWeight: 'bold' },
+  columnWrapper: {
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  listPadding: {
+    paddingBottom: 30,
   },
+  errorText: { color: 'red', marginBottom: 10 },
+  retryBtn: { backgroundColor: '#5DBB63', padding: 10, borderRadius: 8 },
 });
